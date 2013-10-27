@@ -11,14 +11,10 @@
 var twitter = require('mtwitter');
 //var db = require('./db');
 var mysql = require('mysql');
+var twt = require('./twt');
 
 /* Twitter authentication tokens */
-var twit = new twitter({
-  consumer_key: 'CEkvckby49gOKfi1hM8Xhw',
-  consumer_secret: '4azgyyYHwTxyMYg6PsBUni7LgBa09ymGoo2F3EoZWqU',
-  access_token_key: '2157036348-Kvm5evO7rTjJmfIED4j0zW9jWgiBJzm7x9k2YAN',
-  access_token_secret: 'kkSNsMvF8W9lV0v85gtM7VjiEp0vGKbSx0h4xdPd38Ym7'
-});
+var twit = new twitter(twt.twitter);
 
 /**
  * Requests mentions data from Twitter
@@ -79,30 +75,36 @@ function getTweets(response, lastid) {
         function logResponse(error, data, respo) {
             if(error)
                 console.log(error);
-                
-            var add = [];
-            var remove =[];
-            for(var i = 0; i < data.length; i++) {
-                var userid = parseInt(data[i].user.id_str, 10);
-                
-                if(data[i].text.substr(12) == 'remove') {
-                    remove.push(userid);
-                } else {
-                    var array = data[i].text.substr(12).split(' ');
+            
+            if(data !== null) {
+                var add = [];
+                var remove = [];
+                for(var i = 0; i < data.length; i++) {
+                    var userid = parseInt(data[i].user.id_str, 10);
                     
-                    var temp = {
-                        id : userid,
-                        institute : array[0],
-                        course : array[1],
-                        expiry : array[2]
-                    };
-                    add.push(temp);
+                    if(data[i].text.substr(12) == 'remove') {
+                        remove.push(userid);
+                    } else {
+                        var array = data[i].text.substr(12).split(' ');
+                        
+                        var temp = {
+                            id : userid,
+                            institute : array[0],
+                            course : array[1],
+                            expiry : array[2]
+                        };
+                        add.push(temp);
+                    }
                 }
+                
+                var last_id = parseInt(data[0].id_str, 10);
+                
+                writeToDB(response, add, remove, last_id);
+            } else {
+                response.writeHead(200, { 'Content-Type': 'text/plain' });
+                response.write('Done');
+                response.end();
             }
-            
-            var last_id = parseInt(data[0].id_str, 10);
-            
-            writeToDB(response, add, remove, last_id);
         }
     );
 }
