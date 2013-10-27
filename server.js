@@ -1,7 +1,6 @@
 /**
  * This module creates a server which listens and
- * parses the request URL of any request and sends it
- * to the router.
+ * parses the request URL of any request and routes it
  * 
  * @author  Andrew Li
  * @version 1.0
