@@ -9,7 +9,7 @@
 
 /* Required modules */
 var querystring = require('querystring');
-//var db = require('./db');
+var db = require('./db');
 var mysql   = require('mysql');
 
 function start(response, param) {
@@ -24,12 +24,7 @@ function start(response, param) {
     if(parameters.course == 'n')
         parameters.course = '%';
     
-    var connection = mysql.createConnection({
-        host     : 'platinumdis.co',
-        port     : '3306',
-        user     : 'unilink-user',
-        password : 'Password2',
-    });
+    var connection = mysql.createConnection(db.dbhost);
     
     connection.connect(function(err) {
         if(err) {

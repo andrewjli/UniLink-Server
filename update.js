@@ -9,7 +9,7 @@
 
 /* Required modules */
 var twitter = require('mtwitter');
-//var db = require('./db');
+var db = require('./db');
 var mysql = require('mysql');
 var twt = require('./twt');
 
@@ -28,12 +28,7 @@ function start(response) {
 }
 
 function getLastID(response) {
-    var connection = mysql.createConnection({
-        host     : 'platinumdis.co',
-        port     : '3306',
-        user     : 'unilink-user',
-        password : 'Password2',
-    });
+    var connection = mysql.createConnection(db.dbhost);
     
     connection.connect(function(err) {
         if(err) {
@@ -110,12 +105,7 @@ function getTweets(response, lastid) {
 }
 
 function writeToDB(response, add, remove, last_id) {
-    var connection = mysql.createConnection({
-        host     : 'platinumdis.co',
-        port     : '3306',
-        user     : 'unilink-user',
-        password : 'Password2',
-    });
+    var connection = mysql.createConnection(db.dbhost);
     
     connection.connect(function(err) {
         if(err) {
