@@ -16,8 +16,8 @@ var mysql = require('mysql');
 var twit = new twitter({
   consumer_key: 'CEkvckby49gOKfi1hM8Xhw',
   consumer_secret: '4azgyyYHwTxyMYg6PsBUni7LgBa09ymGoo2F3EoZWqU',
-  access_token_key: '2157036348-VgUx0FKeLLYM9PPgkmJ8Aw8UmJqvCVzHRmgg2La',
-  access_token_secret: '3fDraQhhpDURs95axnmphip3nE2VrHuaM5AV2KWIFSWjs'
+  access_token_key: '2157036348-Kvm5evO7rTjJmfIED4j0zW9jWgiBJzm7x9k2YAN',
+  access_token_secret: 'kkSNsMvF8W9lV0v85gtM7VjiEp0vGKbSx0h4xdPd38Ym7'
 });
 
 /**
@@ -27,22 +27,12 @@ var twit = new twitter({
  */
 function start(response) {
     console.log('dealing with request for /update');
-    
-    twit.get(
-        '/statuses/mentions_timeline',
-        {count: 1},
-        
-        function logResponse(error, data, respo) {
-            console.log('Error? ', error);
-            
-            response.writeHead(200, { 'Content-Type': 'application/json' });
-            response.write(JSON.stringify(data));
-            response.write(JSON.stringify(respo));
-            response.end('');
-        }
-    );
-        
-    /*var connection = mysql.createConnection({
+
+    getLastID(response);
+}
+
+function getLastID(response) {
+    var connection = mysql.createConnection({
         host     : 'platinumdis.co',
         port     : '3306',
         user     : 'unilink-user',
@@ -62,7 +52,104 @@ function start(response) {
         }
     });
     //console.log('database switched');
-    connection.query('INSERT INTO users VALUES (?, ?, ?, ?)', [id, institute, course, expiry], function(err, results) {
+    connection.query('SELECT id FROM lastid', function(err, results) {
+        if(err) {
+            console.log('ERROR: ' + err);
+        }
+        console.log(results);
+        var lastid = results[0].id;
+        getTweets(response, lastid);
+    });
+    //console.log('entry added');
+    connection.end();
+    //console.log('connection closed');
+}
+
+function getTweets(response, lastid) {
+    twit.get(
+        '/statuses/mentions_timeline',
+        {
+            count : 20,
+            since_id : lastid,
+            trim_user : true,
+            contributor_details : false,
+            include_entities : false
+        },
+        
+        function logResponse(error, data, respo) {
+            if(error)
+                console.log(error);
+                
+            var add = [];
+            var remove =[];
+            for(var i = 0; i < data.length; i++) {
+                var userid = parseInt(data[i].user.id_str, 10);
+                
+                if(data[i].text.substr(12) == 'remove') {
+                    remove.push(userid);
+                } else {
+                    var array = data[i].text.substr(12).split(' ');
+                    
+                    var temp = {
+                        id : userid,
+                        institute : array[0],
+                        course : array[1],
+                        expiry : array[2]
+                    };
+                    add.push(temp);
+                }
+            }
+            
+            var last_id = parseInt(data[0].id_str, 10);
+            
+            writeToDB(response, add, remove, last_id);
+        }
+    );
+}
+
+function writeToDB(response, add, remove, last_id) {
+    var connection = mysql.createConnection({
+        host     : 'platinumdis.co',
+        port     : '3306',
+        user     : 'unilink-user',
+        password : 'Password2',
+    });
+    
+    connection.connect(function(err) {
+        if(err) {
+            console.log('ERROR: ' + err.code); // 'ECONNREFUSED'
+            console.log('Fatal error: ' + err.fatal); // true
+        }
+    });
+    //console.log('connection successful');
+    connection.query('USE unilink', function(err, results) {
+        if(err) {
+            console.log('ERROR: ' + err.code); // 'ER_BAD_DB_ERROR'
+        }
+    });
+    //console.log('database switched');
+    if(add.length !== 0) {
+        for(var i = 0; i < add.length; i++) {
+            console.log('Adding ' + add[i].id);
+            connection.query('INSERT INTO users VALUES (?, ?, ?, ?)', [add[i].id, add[i].institute, add[i].course, add[i].expiry], function(err, results) {
+                if(err) {
+                    console.log('ERROR: ' + err);
+                }
+            });
+        }
+    }
+    console.log(remove);
+    if(remove.length !== 0) {
+        for(var j = 0; j < remove.length; j++) {
+            console.log('Removing j='+j+': ' + remove[j]);
+            connection.query('DELETE FROM users WHERE id=?', [remove[j]], function(err, results) {
+                if(err) {
+                    console.log('ERROR: ' + err);
+                }
+            });
+        }
+    }
+    connection.query('UPDATE lastid SET id=? WHERE 1=1', [last_id], function(err, results) {
         if(err) {
             console.log('ERROR: ' + err);
         }
@@ -72,8 +159,8 @@ function start(response) {
     //console.log('connection closed');
     
     response.writeHead(200, { 'Content-Type': 'text/plain' });
-    response.write('Ohai');
-    response.end();*/
+    response.write('Done');
+    response.end();
 }
 
 /* Make method available to other modules */
